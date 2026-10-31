@@ -3,6 +3,8 @@ import {ApiResponse} from "../utils/apiResponse.js";
 import {ansyncHandler} from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/apiError.js";
 import {sendEmail} from "../utils/emailService.js";
+import {emailVerificationMailgenContent} from "../utils/emailTemplates.js";
+import jwt from "jsonwebtoken";
 
 
 const generateAccessAndRefreshToken = async (userId) => {
@@ -111,4 +113,31 @@ const login = ansyncHandler(async (req, res) => {
 })
 
 
-export {registerUser, generateAccessAndRefreshToken};
+const logoutUser = ansyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    await User.findByIdAndUpdate(userId,
+       { $set: {refreshToken: null} },
+       { new: true }
+    );
+
+    const options = {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        maxAge: 0 // Expire the cookie immediately
+    };
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", "", options)
+        .clearCookie("refreshToken", "", options)
+        .json(new ApiResponse(200, null, "User logged out successfully"))
+
+
+
+})
+    
+
+
+export {registerUser, generateAccessAndRefreshToken , login, logoutUser};
