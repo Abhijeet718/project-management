@@ -23,6 +23,21 @@ const userResgistrationValidator = () => {
     ]
 }
 
+const userLoginValidator = () => {
+    return [
+        body('email')
+            .optional() 
+            .trim()
+            .notEmpty().withMessage('Email is required')
+            .isEmail().withMessage('Invalid email format'),
+        body('password')
+            .trim()
+            .notEmpty().withMessage('Password is required')
+            .isLength({min: 6}).withMessage('Password must be at least 6 characters long')
+    ]
+}
+
 export {
-    userResgistrationValidator
+    userResgistrationValidator,
+    userLoginValidator
 }
