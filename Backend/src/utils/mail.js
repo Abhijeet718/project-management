@@ -32,12 +32,7 @@ const sendEmail = async (options) =>{
         html: emailHtml
     }
     
-    try{
-        await transporter.sendMail(mail);
-    }
-    catch(error){
-        console.error("Error sending email:", error);
-    }
+    await transporter.sendMail(mail);
 }
 
 
