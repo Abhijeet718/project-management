@@ -1,9 +1,12 @@
 import { User } from "../models/user.model.js";
 import { Project } from "../models/project.model.js";
 import { ProjectMember } from "../models/projectMember.model.js";
+import { Task } from "../models/task.model.js";
+import { Subtask } from "../models/subtask.model.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { removeTaskAttachmentFiles } from "../utils/fileStorage.js";
 import mongoose from "mongoose";
 import { AvailableUserRoles, UserRolesEnum } from "../utils/constants.js";
 
@@ -123,10 +126,20 @@ const updateProject = asyncHandler(async (req, res) => {
 const deleteProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
 
+  const tasks = await Task.find({ project: projectId }).select("_id attachments");
   const project = await Project.findByIdAndDelete(projectId);
   if (!project) {
     throw new ApiError(404, "Project not found");
   }
+
+  const taskIds = tasks.map((task) => task._id);
+  await Promise.all([
+    Task.deleteMany({ project: project._id }),
+    Subtask.deleteMany({ task: { $in: taskIds } }),
+    ProjectMember.deleteMany({ project: project._id }),
+    ...tasks.map((task) => removeTaskAttachmentFiles(task.attachments)),
+  ]);
+
   return res
     .status(200)
     .json(new ApiResponse(200, project, "Project deleted successfully"));

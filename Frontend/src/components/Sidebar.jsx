@@ -1,23 +1,23 @@
 import {
-  CalendarDays,
   CheckCheck,
   CircleCheck,
   FolderKanban,
   LayoutDashboard,
-  UsersRound,
   X,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import useAuth from '../context/useAuth.js'
 
 const navigationItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/', available: true },
-  { label: 'Projects', icon: FolderKanban, available: false },
-  { label: 'My tasks', icon: CircleCheck, available: false },
-  { label: 'Calendar', icon: CalendarDays, available: false },
-  { label: 'Team', icon: UsersRound, available: false },
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { label: 'Projects', icon: FolderKanban, path: '/projects' },
 ]
 
 function Sidebar({ isMobileOpen, onClose }) {
+  const { user } = useAuth()
+  const displayName = user?.fullName || user?.username || 'Signed-in user'
+  const initials = displayName.slice(0, 2).toUpperCase()
+
   return (
     <aside
       className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white px-4 py-5 md:sticky md:top-0 md:h-screen md:translate-x-0 ${
@@ -45,16 +45,14 @@ function Sidebar({ isMobileOpen, onClose }) {
       </div>
 
       <div className="mt-9 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
-        <p className="px-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-          Workspace
-        </p>
+        <p className="px-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Signed in as</p>
         <div className="mt-2 flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-amber-100 text-xs font-bold text-amber-800">
-            ST
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-xs font-bold text-brand-700">
+            {initials}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-800">Student team</p>
-            <p className="truncate text-xs text-slate-500">Personal workspace</p>
+            <p className="truncate text-sm font-semibold text-slate-800">{displayName}</p>
+            <p className="truncate text-xs text-slate-500">{user?.email || 'Taskspace account'}</p>
           </div>
         </div>
       </div>
@@ -64,39 +62,24 @@ function Sidebar({ isMobileOpen, onClose }) {
           Menu
         </p>
         <div className="space-y-1">
-          {navigationItems.map(({ label, icon: Icon, path, available }) =>
-            available ? (
-              <NavLink
-                key={label}
-                to={path}
-                onClick={onClose}
-                end
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold ${
-                    isActive
-                      ? 'bg-brand-50 text-brand-700'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }`
-                }
-              >
-                <Icon size={18} strokeWidth={1.9} />
-                {label}
-              </NavLink>
-            ) : (
-              <div
-                key={label}
-                aria-disabled="true"
-                title="Available in a later step"
-                className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400"
-              >
-                <Icon size={18} strokeWidth={1.8} />
-                <span className="flex-1">{label}</span>
-                <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
-                  Soon
-                </span>
-              </div>
-            ),
-          )}
+          {navigationItems.map(({ label, icon: Icon, path }) => (
+            <NavLink
+              key={label}
+              to={path}
+              onClick={onClose}
+              end={path === '/'}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold ${
+                  isActive
+                    ? 'bg-brand-50 text-brand-700'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`
+              }
+            >
+              <Icon size={18} strokeWidth={1.9} />
+              {label}
+            </NavLink>
+          ))}
         </div>
       </nav>
 

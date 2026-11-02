@@ -79,7 +79,6 @@ const createProjectValidator = () => {
         body('description')
             .optional()
             .trim()
-            .notEmpty().withMessage('Project description is required')
     ]
 }
 

@@ -50,7 +50,7 @@ export const validateProjectPermission = (roles = []) => {
     });
 
     if (!project) {
-      throw new ApiError(400, "project not found");
+      throw new ApiError(404, "Project not found");
     }
 
     const givenRole = project?.role;

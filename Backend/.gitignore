@@ -32,19 +32,9 @@ Thumbs.db
 public/images/*
 !public/images/.gitkeep
 
-# Test files
-Backend/test/
-Backend/tests/
-**/*.test.js
-**/*.spec.js
-
 # API documentation
 Backend/API.md
 
-test/
-tests/
-*.test.js
-*.spec.js
 .cache/
 API.md
 .env
