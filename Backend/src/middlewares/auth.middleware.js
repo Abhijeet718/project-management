@@ -1,8 +1,11 @@
-import { User } from "../models/user.models.js";
-import { ProjectMember } from "../models/projectmember.models.js";
-import { ApiError } from "../utils/api-error.js";
-import { asyncHandler } from "../utils/async-handler.js";
+import { User } from "../models/user.model.js";
+import { ProjectMember } from "../models/projectMember.model.js";
+import { Task } from "../models/task.model.js";
+import { Subtask } from "../models/subtask.model.js";
+import { ApiError } from "../utils/apiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
   const token =
@@ -16,7 +19,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
   try {
     const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
     const user = await User.findById(decodedToken?._id).select(
-      "-password -refreshToken -emailVerificationToken -emailVerificationExpiry",
+      "-password -refreshToken -emailVerificationToken -emailVerificationExpiry -forgotPasswordToken -forgotPasswordTokenExpiry",
     );
 
     if (!user) {
@@ -30,11 +33,15 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
 });
 
 export const validateProjectPermission = (roles = []) => {
-  asyncHandler(async (req, res, next) => {
+  return asyncHandler(async (req, res, next) => {
     const { projectId } = req.params;
 
     if (!projectId) {
       throw new ApiError(400, "project id is missing");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      throw new ApiError(400, "Invalid project ID");
     }
 
     const project = await ProjectMember.findOne({
@@ -60,3 +67,33 @@ export const validateProjectPermission = (roles = []) => {
     next();
   });
 };
+
+export const validateTaskProjectScope = asyncHandler(async (req, res, next) => {
+  const { projectId, taskId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(taskId)) {
+    throw new ApiError(400, "Invalid task ID");
+  }
+
+  const task = await Task.findOne({ _id: taskId, project: projectId }).select("_id");
+  if (!task) {
+    throw new ApiError(404, "Task not found in this project");
+  }
+
+  next();
+});
+
+export const validateSubtaskTaskScope = asyncHandler(async (req, res, next) => {
+  const { taskId, subTaskId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(subTaskId)) {
+    throw new ApiError(400, "Invalid subtask ID");
+  }
+
+  const subtask = await Subtask.findOne({ _id: subTaskId, task: taskId }).select("_id");
+  if (!subtask) {
+    throw new ApiError(404, "Subtask not found in this task");
+  }
+
+  next();
+});

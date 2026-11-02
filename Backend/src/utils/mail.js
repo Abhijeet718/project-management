@@ -1,7 +1,35 @@
 import Mailgen from 'mailgen';
 import nodemailer from 'nodemailer';
+import { ApiError } from './apiError.js';
+
+export const validateMailConfiguration = (needsPasswordResetRedirect = false) => {
+    const requiredVariables = [
+        'MAILTRAP_SMTP_HOST',
+        'MAILTRAP_SMTP_PORT',
+        'MAILTRAP_SMTP_USER',
+        'MAILTRAP_SMTP_PASS',
+        'MAILTRAP_FROM_EMAIL',
+    ];
+    if (needsPasswordResetRedirect) {
+        requiredVariables.push('FORGET_PASSWORD_REDIRECT_URL');
+    }
+
+    const missingVariables = requiredVariables.filter((name) => !process.env[name]?.trim());
+    if (missingVariables.length) {
+        throw new ApiError(
+            503,
+            `Email delivery is not configured. Set: ${missingVariables.join(', ')}`,
+        );
+    }
+
+    const port = Number(process.env.MAILTRAP_SMTP_PORT);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        throw new ApiError(503, 'MAILTRAP_SMTP_PORT must be a valid port number');
+    }
+};
 
 const sendEmail = async (options) =>{
+    validateMailConfiguration();
     const mailGenerator =  new Mailgen({
         theme: 'default',
         product: {
@@ -16,7 +44,8 @@ const sendEmail = async (options) =>{
 
     const transporter = nodemailer.createTransport({
     host: process.env.MAILTRAP_SMTP_HOST,
-    port: process.env.MAILTRAP_SMTP_PORT,
+    port: Number(process.env.MAILTRAP_SMTP_PORT),
+    secure: Number(process.env.MAILTRAP_SMTP_PORT) === 465,
     auth: {
         user: process.env.MAILTRAP_SMTP_USER,
         pass: process.env.MAILTRAP_SMTP_PASS

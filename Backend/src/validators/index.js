@@ -2,7 +2,7 @@ import { body } from 'express-validator';
 import { AvailableUserRoles } from '../utils/constants.js';
 
 
-const userResgistrationValidator = () => {
+const userRegistrationValidator = () => {
     return [
         body('username')
             .trim()
@@ -11,12 +11,15 @@ const userResgistrationValidator = () => {
             .isLength({min: 3}).withMessage('Username must be at least 3 characters long'),
         body('email')
             .trim()
+            .toLowerCase()
             .notEmpty().withMessage('Email is required')
             .isEmail().withMessage('Invalid email format'),
         body('password')
             .trim()
             .notEmpty().withMessage('Password is required')
-            .isLength({min: 6}).withMessage('Password must be at least 6 characters long'),
+            .isLength({min: 8}).withMessage('Password must be at least 8 characters long'),
+        body('role')
+            .not().exists().withMessage('Role cannot be assigned during registration'),
         body('fullName')
             .optional()
             .trim()
@@ -27,14 +30,14 @@ const userResgistrationValidator = () => {
 const userLoginValidator = () => {
     return [
         body('email')
-            .optional() 
             .trim()
+            .toLowerCase()
             .notEmpty().withMessage('Email is required')
             .isEmail().withMessage('Invalid email format'),
         body('password')
             .trim()
             .notEmpty().withMessage('Password is required')
-            .isLength({min: 6}).withMessage('Password must be at least 6 characters long')
+            .isLength({min: 8}).withMessage('Password must be at least 8 characters long')
     ]
 }
 
@@ -42,6 +45,7 @@ const forgotPasswordRequestValidator = () => {
     return [
         body('email')
             .trim()
+            .toLowerCase()
             .notEmpty().withMessage('Email is required')
             .isEmail().withMessage('Invalid email format')
     ]
@@ -83,6 +87,7 @@ const addMemberToProjectValidator = () => {
     return [
         body('email')
             .trim()
+            .toLowerCase()
             .notEmpty().withMessage('Email is required')
             .isEmail().withMessage('Invalid email format'),
         body('role')
@@ -92,7 +97,7 @@ const addMemberToProjectValidator = () => {
 }
 
 export {
-    userResgistrationValidator,
+    userRegistrationValidator,
     userLoginValidator,
     forgotPasswordRequestValidator,
     resetForgotPasswordValidator,

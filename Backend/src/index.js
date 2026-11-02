@@ -1,20 +1,27 @@
 import dotenv from 'dotenv';
-import connectDB from './db/index.js';
-import app from './app.js';
-dotenv.config({
-    path: './.env'
-});
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { validateEnvironment } from './utils/environment.js';
 
+const backendDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+dotenv.config({ path: path.join(backendDirectory, '.env') });
 
-const PORT = process.env.PORT || 3000;
+const startServer = async () => {
+    validateEnvironment();
 
-connectDB()
-    .then(() => {
-        app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
-        });
+    const [{ default: connectDB }, { default: app }] = await Promise.all([
+        import('./db/index.js'),
+        import('./app.js'),
+    ]);
+
+    await connectDB();
+    const port = Number(process.env.PORT || 3000);
+    app.listen(port, () => {
+        console.log(`Server is running on port ${port}`);
     })
-    .catch((error) => {
-        console.error("MongoDB connection error", error);
-        process.exit(1);
-    });
+};
+
+startServer().catch((error) => {
+    console.error(`Backend startup failed: ${error.message}`);
+    process.exit(1);
+});

@@ -1,9 +1,10 @@
 import { Project } from "../models/project.model.js";
-import { Taks as Task } from "../models/task.model.js";
+import { Task } from "../models/task.model.js";
 import { Subtask } from "../models/subtask.model.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { ApiError } from "../utils/apiError.js";
-import { ansyncHandler as asyncHandler } from "../utils/asyncHandler.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { createAttachmentUrl, removeTaskAttachmentFiles } from "../utils/fileStorage.js";
 import mongoose from "mongoose";
 
 const getTasks = asyncHandler(async (req, res) => {
@@ -17,8 +18,8 @@ const getTasks = asyncHandler(async (req, res) => {
   }).populate("assignedTo", "avatar username fullName");
 
   return res
-    .staus(201)
-    .json(new ApiResponse(201, tasks, "Task fetched successfully"));
+    .status(200)
+    .json(new ApiResponse(200, tasks, "Tasks fetched successfully"));
 });
 const createTask = asyncHandler(async (req, res) => {
   const { title, description, assignedTo, status } = req.body;
@@ -32,7 +33,7 @@ const createTask = asyncHandler(async (req, res) => {
 
   const attachments = files.map((file) => {
     return {
-      url: `${process.env.SERVER_URL}/images/${file.originalname}`,
+      url: createAttachmentUrl(file.filename),
       mimetype: file.mimetype,
       size: file.size,
     };
@@ -51,7 +52,7 @@ const createTask = asyncHandler(async (req, res) => {
   });
 
   return res
-    .staus(201)
+    .status(201)
     .json(new ApiResponse(201, task, "Task created successfully"));
 });
 const getTaskById = asyncHandler(async (req, res) => {
@@ -71,10 +72,12 @@ const getTaskById = asyncHandler(async (req, res) => {
         as: "assignedTo",
         pipeline: [
           {
-            _id: 1,
-            username: 1,
-            fullName: 1,
-            avatar: 1,
+            $project: {
+              _id: 1,
+              username: 1,
+              fullName: 1,
+              avatar: 1,
+            },
           },
         ],
       },
@@ -178,7 +181,7 @@ const updateTask = asyncHandler(async (req, res) => {
   }
 
   const attachments = (req.files || []).map((file) => ({
-    url: `${process.env.SERVER_URL}/images/${file.filename}`,
+    url: createAttachmentUrl(file.filename),
     mimetype: file.mimetype,
     size: file.size,
   }));
@@ -204,6 +207,7 @@ const deleteTask = asyncHandler(async (req, res) => {
   }
 
   await Subtask.deleteMany({ task: task._id });
+  await removeTaskAttachmentFiles(task.attachments);
 
   return res
     .status(200)

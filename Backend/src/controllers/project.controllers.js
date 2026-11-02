@@ -1,11 +1,11 @@
-import { User } from "../models/user.models.js";
-import { Project } from "../models/project.models.js";
-import { ProjectMember } from "../models/projectmember.models.js";
-import { ApiResponse } from "../utils/api-response.js";
-import { ApiError } from "../utils/api-error.js";
-import { asyncHandler } from "../utils/async-handler.js";
+import { User } from "../models/user.model.js";
+import { Project } from "../models/project.model.js";
+import { ProjectMember } from "../models/projectMember.model.js";
+import { ApiResponse } from "../utils/apiResponse.js";
+import { ApiError } from "../utils/apiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import mongoose from "mongoose";
-import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
+import { AvailableUserRoles, UserRolesEnum } from "../utils/constants.js";
 
 const getProjects = asyncHandler(async (req, res) => {
   const projects = await ProjectMember.aggregate([
@@ -17,15 +17,15 @@ const getProjects = asyncHandler(async (req, res) => {
     {
       $lookup: {
         from: "projects",
-        localField: "projects",
+        localField: "project",
         foreignField: "_id",
-        as: "projects",
+        as: "project",
         pipeline: [
           {
             $lookup: {
               from: "projectmembers",
               localField: "_id",
-              foreignField: "projects",
+              foreignField: "project",
               as: "projectmembers",
             },
           },
@@ -36,6 +36,16 @@ const getProjects = asyncHandler(async (req, res) => {
               },
             },
           },
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              description: 1,
+              members: 1,
+              createdAt: 1,
+              createdBy: 1,
+            },
+          },
         ],
       },
     },
@@ -44,14 +54,7 @@ const getProjects = asyncHandler(async (req, res) => {
     },
     {
       $project: {
-        project: {
-          _id: 1,
-          name: 1,
-          description: 1,
-          members: 1,
-          createdAt: 1,
-          createdBy: 1,
-        },
+        project: 1,
         role: 1,
         _id: 0,
       },
@@ -132,13 +135,13 @@ const deleteProject = asyncHandler(async (req, res) => {
 const addMembersToProject = asyncHandler(async (req, res) => {
   const { email, role } = req.body;
   const { projectId } = req.params;
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email: email.trim().toLowerCase() });
 
   if (!user) {
     throw new ApiError(404, "User does not exists");
   }
 
-  await ProjectMember.findByIdAndUpdate(
+  await ProjectMember.findOneAndUpdate(
     {
       user: new mongoose.Types.ObjectId(user._id),
       project: new mongoose.Types.ObjectId(projectId),
@@ -161,7 +164,7 @@ const addMembersToProject = asyncHandler(async (req, res) => {
 
 const getProjectMembers = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const project = await Project.findById(req.params);
+  const project = await Project.findById(projectId);
 
   if (!project) {
     throw new ApiError(404, "Project not found");
@@ -220,7 +223,7 @@ const updateMemberRole = asyncHandler(async (req, res) => {
   const { projectId, userId } = req.params;
   const { newRole } = req.body;
 
-  if (!AvailableUserRole.includes(newRole)) {
+  if (!AvailableUserRoles.includes(newRole)) {
     throw new ApiError(400, "Invalid Role");
   }
 
