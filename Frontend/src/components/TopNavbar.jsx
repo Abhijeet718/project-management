@@ -1,4 +1,7 @@
-import { Bell, Menu, Search } from 'lucide-react'
+import { Bell, LoaderCircle, LogOut, Menu, Search } from 'lucide-react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import useAuth from '../context/useAuth.js'
 
 const today = new Intl.DateTimeFormat('en', {
   weekday: 'short',
@@ -7,8 +10,26 @@ const today = new Intl.DateTimeFormat('en', {
 }).format(new Date())
 
 function TopNavbar({ onMenuClick }) {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [logoutError, setLogoutError] = useState('')
+
+  async function handleLogout() {
+    setIsLoggingOut(true)
+    setLogoutError('')
+    try {
+      await logout()
+      navigate('/login', { replace: true })
+    } catch (error) {
+      setLogoutError(error.response?.data?.message || 'Could not sign out. Please try again.')
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
   return (
-    <header className="sticky top-0 z-20 flex min-h-[76px] items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur sm:px-7 lg:px-10">
+    <header className="sticky top-0 z-20 flex min-h-[76px] flex-wrap items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur sm:px-7 lg:px-10">
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -48,10 +69,17 @@ function TopNavbar({ onMenuClick }) {
           <Bell size={18} />
           <span className="absolute right-2 top-2 size-1.5 rounded-full bg-brand-500" />
         </div>
-        <div className="flex size-9 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white" aria-label="Workspace member">
-          M
-        </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="inline-flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:cursor-wait disabled:opacity-60"
+        >
+          {isLoggingOut ? <LoaderCircle size={16} className="animate-spin" /> : <LogOut size={16} />}
+          <span className="hidden sm:inline">Sign out</span>
+        </button>
       </div>
+      {logoutError && <p role="alert" className="w-full pb-2 text-right text-xs text-rose-600">{logoutError}</p>}
     </header>
   )
 }
